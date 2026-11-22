@@ -1,0 +1,338 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Auto spare part item stored in inventory and displayed on the storefront",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Arabic or bilingual name of the spare part",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "category": {
+          "type": "string",
+          "description": "Spare part category",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "carMake": {
+          "type": "string",
+          "description": "Vehicle brand/make",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "carModel": {
+          "type": "string",
+          "description": "Vehicle model and year",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "condition": {
+          "type": "string",
+          "description": "Part condition",
+          "enum": ["مستعمل - نظيف", "فرط وكالة", "جديد"]
+        },
+        "price": {
+          "type": "number",
+          "description": "Unit price in IQD"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Remaining stock quantity"
+        },
+        "minStock": {
+          "type": "integer",
+          "description": "Low-stock alert threshold"
+        },
+        "soldCount": {
+          "type": "integer",
+          "description": "Total units sold"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image asset path or compressed base64 data URI",
+          "maxLength": 260000
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes about compatibility or condition",
+          "maxLength": 500
+        },
+        "lastOrderId": {
+          "type": "string",
+          "description": "Last order ID that atomically decremented stock",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Creator UID",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "carMake",
+        "carModel",
+        "condition",
+        "price",
+        "quantity",
+        "minStock",
+        "soldCount",
+        "imageUrl",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer Cash-on-Delivery order placed from the online storefront",
+      "type": "object",
+      "properties": {
+        "customerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "customerPhone": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 30
+        },
+        "customerAddress": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "items": {
+          "type": "array",
+          "description": "Ordered spare parts (max 30 line items)"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["الدفع عند الاستلام"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "contacted", "preparing", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "customerName",
+        "customerPhone",
+        "customerAddress",
+        "items",
+        "totalAmount",
+        "paymentMethod",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Recorded sale transaction (in-store POS or completed online sale)",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "carMake": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "carModel": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "quantity": {
+          "type": "integer"
+        },
+        "unitPrice": {
+          "type": "number"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["in_store", "online"]
+        },
+        "employeeUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "employeeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "productId",
+        "productName",
+        "carMake",
+        "carModel",
+        "quantity",
+        "unitPrice",
+        "totalAmount",
+        "source",
+        "employeeUid",
+        "employeeName",
+        "createdAt"
+      ]
+    },
+    "StaffMember": {
+      "title": "StaffMember",
+      "description": "Authorized store manager or employee account mapped by sanitized email key",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 150
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "employee"]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "role",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Public storefront and inventory configuration",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 30
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "defaultMinStock": {
+          "type": "integer"
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "aboutText": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "storeName",
+        "whatsappNumber",
+        "currency",
+        "defaultMinStock",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Spare parts inventory and storefront product catalog"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer online orders (PII protected: staff/admin read only)"
+    },
+    "/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "Financial sales ledger (staff/admin create, admin read only)"
+    },
+    "/staff/{staffId}": {
+      "schema": { "$ref": "#/entities/StaffMember" },
+      "description": "Staff accounts and RBAC roles keyed by sanitized email"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Global store settings (e.g., settings/store)"
+    }
+  }
+}

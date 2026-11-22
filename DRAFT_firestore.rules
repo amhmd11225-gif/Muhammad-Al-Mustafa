@@ -1,0 +1,296 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection validation endpoint
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email is string;
+    }
+
+    function currentEmailKey() {
+      return request.auth.token.email.lower().replace('[^a-z0-9]', '_');
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email.lower() == 'amhmd11225@gmail.com';
+    }
+
+    function hasStaffRecord() {
+      return isVerifiedUser() && exists(/databases/$(database)/documents/staff/$(currentEmailKey()));
+    }
+
+    function getStaffData() {
+      return get(/databases/$(database)/documents/staff/$(currentEmailKey())).data;
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (hasStaffRecord() && getStaffData().active == true && getStaffData().role == 'admin');
+    }
+
+    function isEmployee() {
+      return hasStaffRecord() && getStaffData().active == true && getStaffData().role == 'employee';
+    }
+
+    function isStaffOrAdmin() {
+      return isAdmin() || isEmployee();
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'name', 'category', 'carMake', 'carModel', 'condition',
+          'price', 'quantity', 'minStock', 'soldCount', 'imageUrl',
+          'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name', 'category', 'carMake', 'carModel', 'condition',
+          'price', 'quantity', 'minStock', 'soldCount', 'imageUrl',
+          'notes', 'lastOrderId', 'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 140
+        && data.category is string && data.category.size() >= 2 && data.category.size() <= 60
+        && data.carMake is string && data.carMake.size() >= 1 && data.carMake.size() <= 60
+        && data.carModel is string && data.carModel.size() >= 1 && data.carModel.size() <= 60
+        && data.condition in ['مستعمل - نظيف', 'فرط وكالة', 'جديد']
+        && (data.price is int || data.price is float) && data.price >= 0 && data.price <= 1000000000
+        && data.quantity is int && data.quantity >= 0 && data.quantity <= 1000000
+        && data.minStock is int && data.minStock >= 0 && data.minStock <= 100000
+        && data.soldCount is int && data.soldCount >= 0 && data.soldCount <= 10000000
+        && data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 260000
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500))
+        && (!('lastOrderId' in data) || isValidId(data.lastOrderId))
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'customerName', 'customerPhone', 'customerAddress',
+          'items', 'totalAmount', 'paymentMethod', 'status',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'customerName', 'customerPhone', 'customerAddress',
+          'notes', 'items', 'totalAmount', 'paymentMethod', 'status',
+          'createdAt', 'updatedAt'
+        ])
+        && data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100
+        && data.customerPhone is string && data.customerPhone.size() >= 6 && data.customerPhone.size() <= 30
+        && data.customerAddress is string && data.customerAddress.size() >= 3 && data.customerAddress.size() <= 240
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 300))
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 30
+        && data.items[0] is map
+        && data.items[0].keys().hasAll(['productId', 'productName', 'carMake', 'carModel', 'price', 'quantity', 'subtotal'])
+        && data.items[0].productId is string && isValidId(data.items[0].productId)
+        && data.items[0].productName is string && data.items[0].productName.size() >= 1 && data.items[0].productName.size() <= 140
+        && data.items[0].quantity is int && data.items[0].quantity >= 1 && data.items[0].quantity <= 1000
+        && (data.items[0].price is int || data.items[0].price is float) && data.items[0].price >= 0
+        && (data.items[0].subtotal is int || data.items[0].subtotal is float) && data.items[0].subtotal >= 0
+        && (data.totalAmount is int || data.totalAmount is float) && data.totalAmount >= 0 && data.totalAmount <= 10000000000
+        && data.paymentMethod == 'الدفع عند الاستلام'
+        && data.status in ['new', 'contacted', 'preparing', 'completed', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll([
+          'productId', 'productName', 'carMake', 'carModel',
+          'quantity', 'unitPrice', 'totalAmount', 'source',
+          'employeeUid', 'employeeName', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'productId', 'productName', 'carMake', 'carModel',
+          'quantity', 'unitPrice', 'totalAmount', 'source',
+          'employeeUid', 'employeeName', 'notes', 'createdAt'
+        ])
+        && isValidId(data.productId)
+        && data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 140
+        && data.carMake is string && data.carMake.size() <= 60
+        && data.carModel is string && data.carModel.size() <= 60
+        && data.quantity is int && data.quantity >= 1 && data.quantity <= 10000
+        && (data.unitPrice is int || data.unitPrice is float) && data.unitPrice >= 0 && data.unitPrice <= 1000000000
+        && (data.totalAmount is int || data.totalAmount is float) && data.totalAmount >= 0 && data.totalAmount <= 10000000000
+        && data.source in ['in_store', 'online']
+        && data.employeeUid is string && data.employeeUid == request.auth.uid
+        && data.employeeName is string && data.employeeName.size() >= 1 && data.employeeName.size() <= 100
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 300))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidStaff(data) {
+      return data.keys().hasAll(['name', 'email', 'role', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'email', 'phone', 'role', 'active', 'createdAt', 'updatedAt'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 150
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && data.role in ['admin', 'employee']
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStoreSettings(data) {
+      return data.keys().hasAll(['storeName', 'whatsappNumber', 'currency', 'defaultMinStock', 'updatedAt'])
+        && data.keys().hasOnly(['storeName', 'whatsappNumber', 'currency', 'defaultMinStock', 'address', 'aboutText', 'updatedAt'])
+        && data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 100
+        && data.whatsappNumber is string && data.whatsappNumber.size() >= 7 && data.whatsappNumber.size() <= 30
+        && data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 20
+        && data.defaultMinStock is int && data.defaultMinStock >= 0 && data.defaultMinStock <= 1000
+        && (!('address' in data) || (data.address is string && data.address.size() <= 200))
+        && (!('aboutText' in data) || (data.aboutText is string && data.aboutText.size() <= 1000))
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Products (Public storefront catalog; Admin manages; Stock decrements atomically on sale/order)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+
+      allow create: if isValidId(productId)
+        && isAdmin()
+        && isValidProduct(incoming())
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Admin can edit all mutable product fields
+          isAdmin()
+          ||
+          // Employee recording an in-store sale (stock decrement only)
+          (
+            isEmployee()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'soldCount', 'updatedAt'])
+            && incoming().quantity >= 0
+            && incoming().quantity < existing().quantity
+            && (existing().quantity - incoming().quantity) == (incoming().soldCount - existing().soldCount)
+          )
+          ||
+          // Public storefront checkout atomically linked to a newly created order
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'soldCount', 'updatedAt', 'lastOrderId'])
+            && 'lastOrderId' in incoming()
+            && isValidId(incoming().lastOrderId)
+            && incoming().quantity >= 0
+            && incoming().quantity < existing().quantity
+            && (existing().quantity - incoming().quantity) == (incoming().soldCount - existing().soldCount)
+            && existsAfter(/databases/$(database)/documents/orders/$(incoming().lastOrderId))
+            && getAfter(/databases/$(database)/documents/orders/$(incoming().lastOrderId)).data.status == 'new'
+          )
+        );
+
+      allow delete: if isValidId(productId) && isAdmin();
+    }
+
+    // 2. Orders (Public create on checkout; PII isolated to staff/admin)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isStaffOrAdmin();
+      allow list: if isStaffOrAdmin();
+
+      allow create: if isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().status == 'new'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(orderId)
+        && isStaffOrAdmin()
+        && isValidOrder(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          ||
+          (
+            existing().status != 'completed'
+            && existing().status != 'cancelled'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // 3. Sales Ledger (Staff/Admin create on sale; ONLY Admin can read financial ledger)
+    match /sales/{saleId} {
+      allow get: if isValidId(saleId) && isAdmin();
+      allow list: if isAdmin();
+
+      allow create: if isValidId(saleId)
+        && isStaffOrAdmin()
+        && isValidSale(incoming())
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/products/$(incoming().productId));
+
+      allow update, delete: if isValidId(saleId) && isAdmin() && (request.method == 'delete' || isValidSale(incoming()));
+    }
+
+    // 4. Staff Accounts (Admin manages; Staff can read own role doc)
+    match /staff/{staffId} {
+      allow get: if isValidId(staffId) && (isAdmin() || (isVerifiedUser() && staffId == currentEmailKey()));
+      allow list: if isAdmin();
+
+      allow create: if isValidId(staffId)
+        && isAdmin()
+        && isValidStaff(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(staffId)
+        && isAdmin()
+        && isValidStaff(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isValidId(staffId) && isAdmin();
+    }
+
+    // 5. Store Settings (Public get for WhatsApp checkout; Admin write)
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId) && settingId == 'store';
+      allow list: if false;
+
+      allow create, update: if isValidId(settingId)
+        && settingId == 'store'
+        && isAdmin()
+        && isValidStoreSettings(incoming())
+        && incoming().updatedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}
