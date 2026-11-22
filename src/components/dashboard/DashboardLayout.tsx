@@ -88,7 +88,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F5F8] flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-[#F3F5F8] flex flex-col lg:flex-row overflow-x-clip w-full">
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div
@@ -100,7 +100,9 @@ export function DashboardLayout({
       {/* Right-hand Dark Sidebar (RTL) matching reference */}
       <aside
         className={`fixed lg:sticky top-0 right-0 z-50 h-screen w-64 bg-[#11141A] text-white flex flex-col justify-between transition-transform duration-200 shrink-0 ${
-          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+          mobileMenuOpen
+            ? 'translate-x-0 visible pointer-events-auto'
+            : 'translate-x-full invisible pointer-events-none lg:translate-x-0 lg:visible lg:pointer-events-auto'
         }`}
       >
         <div className="flex-1 flex flex-col overflow-y-auto">

@@ -6,15 +6,15 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <title>قطع غيار السيارات — متجر قطع الغيار المستعملة والفرط</title>
+    <title>قطع غيار السيارات — الناصرية - سوق الشيوخ</title>
     <meta
       name="description"
-      content="متجر قطع غيار السيارات لبيع القطع المستعملة والفرط الأصلية، جودة عالية وسعر مناسب مع الدفع عند الاستلام والتوصيل لجميع المحافظات."
+      content="متجر الكتروني لبيع قطع غيار السيارات الناصرية - سوق الشيوخ"
     />
-    <meta property="og:title" content="قطع غيار السيارات — متجر قطع الغيار المستعملة والفرط" />
+    <meta property="og:title" content="قطع غيار السيارات — الناصرية - سوق الشيوخ" />
     <meta
       property="og:description"
-      content="متجر قطع غيار السيارات لبيع القطع المستعملة والفرط الأصلية، جودة عالية وسعر مناسب مع الدفع عند الاستلام."
+      content="متجر الكتروني لبيع قطع غيار السيارات الناصرية - سوق الشيوخ"
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -26,6 +26,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="قطع الغيار" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.ico" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
 
@@ -35,6 +36,16 @@
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Tajawal:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Capture beforeinstallprompt immediately before React mounts -->
+    <script>
+      window.__deferredPWAInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredPWAInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+      });
+    </script>
   </head>
   <body class="bg-[#F6F7F9] text-[#111318] antialiased selection:bg-[#C8102E] selection:text-white">
     <div id="root"></div>

@@ -432,6 +432,7 @@ export default function App() {
           <OrdersView
             orders={orders}
             currency={settings.currency}
+            storeName={settings.storeName}
             role={role}
             userName={staffName || authUser?.displayName || 'موظف'}
           />
@@ -471,7 +472,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] text-[#111318] flex flex-col">
+    <div className="min-h-screen bg-[#F6F7F9] text-[#111318] flex flex-col overflow-x-clip w-full">
       <StorefrontHeader
         storeName={settings.storeName}
         searchQuery={searchQuery}

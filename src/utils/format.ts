@@ -46,8 +46,14 @@ export function generateDocId(prefix = 'id'): string {
 export function cleanWhatsappNumber(phone: string): string {
   const digits = phone.replace(/[^\d]/g, '');
   if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('96407') && digits.length === 14) {
+    return `964${digits.slice(4)}`;
+  }
   if (digits.startsWith('07') && digits.length === 11) {
     return `964${digits.slice(1)}`;
+  }
+  if (digits.startsWith('7') && digits.length === 10) {
+    return `964${digits}`;
   }
   return digits || '9647700000000';
 }
@@ -89,6 +95,33 @@ export function buildOrderWhatsappUrl(params: {
   ]
     .filter(Boolean)
     .join('\n');
+
+  return `https://wa.me/${targetPhone}?text=${encodeURIComponent(lines)}`;
+}
+
+export function buildDeliveredWhatsappUrl(params: {
+  customerPhone: string;
+  customerName: string;
+  orderId: string;
+  items: OrderItem[];
+  totalAmount: number;
+  currency: string;
+  storeName?: string;
+}): string {
+  const targetPhone = cleanWhatsappNumber(params.customerPhone);
+  const itemsText = params.items
+    .map((item) => `• ${item.productName} (${item.carMake} ${item.carModel}) × ${item.quantity}`)
+    .join('\n');
+
+  const lines = [
+    `مرحباً ${params.customerName}،`,
+    `تم التوصيل بنجاح لطلبك رقم (${params.orderId}) من *${params.storeName || 'متجر قطع غيار السيارات'}* ✅`,
+    `------------------------`,
+    itemsText,
+    `*المبلغ الكلي:* ${formatPrice(params.totalAmount, params.currency)}`,
+    `------------------------`,
+    `شكراً لتسوقك معنا ويسعدنا خدمتك في أي وقت.`,
+  ].join('\n');
 
   return `https://wa.me/${targetPhone}?text=${encodeURIComponent(lines)}`;
 }

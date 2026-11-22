@@ -22,6 +22,7 @@ export type OrderStatus =
   | 'new'
   | 'contacted'
   | 'preparing'
+  | 'delivered'
   | 'completed'
   | 'cancelled';
 
@@ -29,6 +30,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   new: 'جديد',
   contacted: 'تم التواصل',
   preparing: 'تم التجهيز',
+  delivered: 'تم التوصيل',
   completed: 'مكتمل',
   cancelled: 'ملغي',
 };
@@ -86,6 +88,7 @@ export interface Order {
 export interface Sale {
   id: string;
   productId: string;
+  orderId?: string;
   productName: string;
   carMake: string;
   carModel: string;

@@ -46,9 +46,9 @@ export function StorefrontHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0F1115] text-white shadow-md">
+    <header className="sticky top-0 z-40 bg-[#0F1115] text-white shadow-md w-full">
       {/* Top Main Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-5">
         <a
           href="#top"
           onClick={(e) => {
@@ -56,7 +56,7 @@ export function StorefrontHeader({
             onSelectCategory('الكل');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E] rounded-lg"
+          className="min-w-0 shrink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8102E] rounded-lg"
         >
           <BrandLogo storeName={storeName} />
         </a>
@@ -74,13 +74,13 @@ export function StorefrontHeader({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <PWAInstallButton variant="header" />
 
           <button
             type="button"
             onClick={onOpenDashboard}
-            className="h-10 px-3 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-lg bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title={isStaffSignedIn ? 'الانتقال إلى لوحة التحكم' : 'دخول المدير والموظفين'}
           >
             <User className="w-4 h-4" />
@@ -93,9 +93,9 @@ export function StorefrontHeader({
             type="button"
             onClick={onOpenCart}
             aria-label="سلة المشتريات"
-            className="relative h-10 px-3 sm:px-3.5 rounded-lg bg-white/10 hover:bg-white/15 text-white inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="relative h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-lg bg-white/10 hover:bg-white/15 text-white inline-flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline text-sm font-medium">السلة</span>
             {cartCount > 0 && (
               <span className="min-w-5 h-5 px-1 rounded-full bg-[#C8102E] text-white text-[11px] font-bold flex items-center justify-center tabular-nums">
@@ -107,7 +107,7 @@ export function StorefrontHeader({
       </div>
 
       {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 pb-3">
+      <div className="md:hidden px-3 pb-2.5">
         <div className="relative">
           <input
             type="search"
@@ -121,32 +121,32 @@ export function StorefrontHeader({
       </div>
 
       {/* Secondary Navigation Bar matching reference */}
-      <nav className="bg-[#161920] border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 sm:gap-4 text-sm overflow-x-auto no-scrollbar">
+      <nav className="bg-[#161920] border-t border-white/10 w-full">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 flex items-center gap-0.5 sm:gap-4 text-xs sm:text-sm">
           <button
             type="button"
             onClick={() => handleNavCategory('الكل')}
-            className={`px-4 py-2.5 font-bold inline-flex items-center gap-2 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+            className={`px-3 sm:px-4 py-2.5 font-bold inline-flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               selectedCategory === 'الكل'
                 ? 'bg-[#C8102E] text-white'
                 : 'text-neutral-300 hover:text-white'
             }`}
           >
-            <Home className="w-4 h-4" />
+            <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>الرئيسية</span>
           </button>
 
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setCatMenuOpen((prev) => !prev)}
-              className={`px-3.5 py-2.5 font-medium inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-2.5 font-medium inline-flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                 selectedCategory !== 'الكل'
                   ? 'text-white font-bold'
                   : 'text-neutral-300 hover:text-white'
               }`}
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>الأقسام</span>
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
@@ -184,7 +184,7 @@ export function StorefrontHeader({
 
           <a
             href="#about-section"
-            className="px-3.5 py-2.5 font-medium text-neutral-300 hover:text-white whitespace-nowrap shrink-0 transition-colors"
+            className="px-2.5 sm:px-3.5 py-2.5 font-medium text-neutral-300 hover:text-white whitespace-nowrap shrink-0 transition-colors"
           >
             من نحن
           </a>
@@ -193,7 +193,7 @@ export function StorefrontHeader({
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3.5 py-2.5 font-medium text-neutral-300 hover:text-white inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors"
+            className="px-2.5 sm:px-3.5 py-2.5 font-medium text-neutral-300 hover:text-white inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors"
           >
             <Phone className="w-3.5 h-3.5" />
             <span>تواصل معنا</span>

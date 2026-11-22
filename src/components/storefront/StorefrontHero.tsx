@@ -7,7 +7,7 @@ interface StorefrontHeroProps {
 
 export function StorefrontHero({ storeName, onBrowseClick }: StorefrontHeroProps) {
   return (
-    <section id="top" className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
+    <section id="top" className="max-w-7xl mx-auto px-3 sm:px-6 pt-3 sm:pt-6 w-full">
       <div className="relative overflow-hidden rounded-2xl bg-[#0F1115] min-h-[260px] sm:min-h-[360px] lg:min-h-[420px] flex items-center shadow-sm">
         <img
           src={HERO_BANNER_IMAGE}

@@ -5,8 +5,8 @@ interface BrandLogoProps {
 
 export function BrandLogo({ storeName = 'قطع غيار السيارات', compact = false }: BrandLogoProps) {
   return (
-    <div className="flex items-center gap-2.5 select-none whitespace-nowrap shrink-0">
-      <div className="relative flex items-center justify-center w-11 h-9 shrink-0">
+    <div className="flex items-center gap-2 sm:gap-2.5 select-none min-w-0">
+      <div className="relative flex items-center justify-center w-9 h-7 sm:w-11 sm:h-9 shrink-0">
         <svg
           viewBox="0 0 88 60"
           className="w-full h-full"
@@ -33,7 +33,7 @@ export function BrandLogo({ storeName = 'قطع غيار السيارات', comp
         </svg>
       </div>
       {!compact && (
-        <span className="font-display font-extrabold text-base sm:text-lg tracking-tight text-white">
+        <span className="font-display font-extrabold text-sm sm:text-lg tracking-tight text-white truncate">
           {storeName}
         </span>
       )}

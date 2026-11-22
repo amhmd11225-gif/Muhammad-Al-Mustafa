@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import {
+  AlertCircle,
+  CheckCircle2,
   ClipboardList,
   MapPin,
   MessageCircle,
   Phone,
   Trash2,
+  Truck,
 } from 'lucide-react';
 import {
   deleteDoc,
@@ -13,7 +16,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
+import { auth, db } from '../../firebase';
 import {
   ORDER_STATUS_LABELS,
   type Order,
@@ -22,15 +25,16 @@ import {
   type UserRole,
 } from '../../types';
 import {
+  buildDeliveredWhatsappUrl,
   buildGeneralWhatsappUrl,
   formatDateTime,
   formatPrice,
-  generateDocId,
 } from '../../utils/format';
 
 interface OrdersViewProps {
   orders: Order[];
   currency: string;
+  storeName?: string;
   role: UserRole;
   userName: string;
 }
@@ -39,6 +43,7 @@ const STATUS_ORDER: OrderStatus[] = [
   'new',
   'contacted',
   'preparing',
+  'delivered',
   'completed',
   'cancelled',
 ];
@@ -46,51 +51,99 @@ const STATUS_ORDER: OrderStatus[] = [
 export function OrdersView({
   orders,
   currency,
+  storeName,
   role,
   userName,
 }: OrdersViewProps) {
   const isAdmin = role === 'admin';
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState('');
+  const [actionError, setActionError] = useState('');
 
   const filtered = orders.filter((o) =>
     filter === 'all' ? true : o.status === filter
   );
 
+  const showNotice = (msg: string) => {
+    setActionNotice(msg);
+    setTimeout(() => {
+      setActionNotice((prev) => (prev === msg ? '' : prev));
+    }, 4500);
+  };
+
   const handleStatusChange = async (order: Order, nextStatus: OrderStatus) => {
     if (order.status === nextStatus) return;
     setBusyId(order.id);
+    setActionError('');
+    setActionNotice('');
+
     try {
-      // If Admin completes an order, also log a sale entry if not previously completed
-      if (isAdmin && nextStatus === 'completed' && order.status !== 'completed') {
+      if (nextStatus === 'completed') {
+        if (!auth.currentUser) {
+          throw new Error('يرجى تسجيل الدخول أولاً لإتمام الطلب.');
+        }
+
         await runTransaction(db, async (transaction) => {
-          transaction.update(doc(db, 'orders', order.id), {
-            status: nextStatus,
+          // 1. Execute ALL reads BEFORE any writes (Firestore transaction requirement)
+          const orderRef = doc(db, 'orders', order.id);
+          const orderSnap = await transaction.get(orderRef);
+
+          const productChecks = await Promise.all(
+            order.items.map(async (item, idx) => {
+              const pRef = doc(db, 'products', item.productId);
+              const snap = await transaction.get(pRef);
+              return { item, idx, snap };
+            })
+          );
+
+          if (!orderSnap.exists()) {
+            throw new Error('لم يتم العثور على هذا الطلب.');
+          }
+
+          const liveOrder = orderSnap.data() as Order;
+          if (liveOrder.status === 'completed') {
+            return;
+          }
+
+          // 2. Execute ALL writes after reads
+          transaction.update(orderRef, {
+            status: 'completed',
             updatedAt: serverTimestamp(),
           });
 
-          for (const item of order.items) {
-            const pRef = doc(db, 'products', item.productId);
-            const pSnap = await transaction.get(pRef);
-            if (pSnap.exists() && auth.currentUser) {
-              const saleId = generateDocId('sale');
+          const currentUid = auth.currentUser!.uid;
+          const recorderName = `${userName || 'الإدارة'} (طلب إلكتروني)`.slice(0, 100);
+
+          for (const { item, idx, snap } of productChecks) {
+            if (isAdmin || snap.exists()) {
+              const saleId = `${order.id}_item_${idx}`.slice(0, 128);
+              const qty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+              const unitPrice = Number(item.price) || 0;
+              const subtotal = Number(item.subtotal) || unitPrice * qty;
+
               transaction.set(doc(db, 'sales', saleId), {
                 productId: item.productId,
-                productName: item.productName,
-                carMake: item.carMake,
-                carModel: item.carModel,
-                quantity: item.quantity,
-                unitPrice: item.price,
-                totalAmount: item.subtotal,
+                orderId: order.id,
+                productName: (item.productName || 'قطعة غيار').slice(0, 140),
+                carMake: (item.carMake || '').slice(0, 60),
+                carModel: (item.carModel || '').slice(0, 60),
+                quantity: qty,
+                unitPrice,
+                totalAmount: subtotal,
                 source: 'online',
-                employeeUid: auth.currentUser.uid,
-                employeeName: `${userName} (طلب إلكتروني)`.slice(0, 100),
-                notes: `طلب زبون: ${order.customerName}`,
+                employeeUid: currentUid,
+                employeeName: recorderName,
+                notes: `طلب رقم ${order.id} — ${order.customerName}`.slice(0, 300),
                 createdAt: serverTimestamp(),
               });
             }
           }
         });
+
+        showNotice(
+          `تم تحويل طلب "${order.customerName}" إلى مكتمل وإضافته إلى سجل المبيعات بنجاح.`
+        );
       } else if (
         isAdmin &&
         nextStatus === 'cancelled' &&
@@ -122,14 +175,27 @@ export function OrdersView({
             updatedAt: serverTimestamp(),
           });
         });
+
+        showNotice(`تم إلغاء الطلب وإرجاع الكميات للمخزون.`);
       } else {
         await updateDoc(doc(db, 'orders', order.id), {
           status: nextStatus,
           updatedAt: serverTimestamp(),
         });
+
+        if (nextStatus === 'delivered') {
+          showNotice(
+            `تم تحديث حالة طلب "${order.customerName}" إلى تم التوصيل.`
+          );
+        }
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `orders/${order.id}`);
+      console.error('Order status update failed:', err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'تعذر تحديث حالة الطلب، يرجى المحاولة مرة أخرى.';
+      setActionError(message);
     } finally {
       setBusyId(null);
     }
@@ -138,10 +204,12 @@ export function OrdersView({
   const handleDeleteOrder = async (orderId: string) => {
     if (!isAdmin) return;
     setBusyId(orderId);
+    setActionError('');
     try {
       await deleteDoc(doc(db, 'orders', orderId));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `orders/${orderId}`);
+      console.error('Order delete failed:', err);
+      setActionError('تعذر حذف الطلب.');
     } finally {
       setBusyId(null);
     }
@@ -155,6 +223,8 @@ export function OrdersView({
         return 'text-sky-700 bg-sky-50 border-sky-200';
       case 'preparing':
         return 'text-amber-700 bg-amber-50 border-amber-200';
+      case 'delivered':
+        return 'text-indigo-700 bg-indigo-50 border-indigo-200';
       case 'completed':
         return 'text-emerald-700 bg-emerald-50 border-emerald-200';
       case 'cancelled':
@@ -196,6 +266,20 @@ export function OrdersView({
         })}
       </div>
 
+      {actionNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{actionNotice}</span>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-[#C8102E] text-xs sm:text-sm font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
+
       {/* Orders List */}
       {filtered.length === 0 ? (
         <div className="bg-white border border-neutral-200 rounded-2xl p-10 text-center">
@@ -212,8 +296,18 @@ export function OrdersView({
               (order.status === 'completed' || order.status === 'cancelled');
             const customerWa = buildGeneralWhatsappUrl(
               order.customerPhone,
-              `مرحباً ${order.customerName}، بخصوص طلبك من متجر قطع غيار السيارات.`
+              `مرحباً ${order.customerName}، بخصوص طلبك من متجر ${storeName || 'قطع غيار السيارات'}.`
             );
+            const deliveredWaUrl = buildDeliveredWhatsappUrl({
+              customerPhone: order.customerPhone,
+              customerName: order.customerName,
+              orderId: order.id,
+              items: order.items,
+              totalAmount: order.totalAmount,
+              currency,
+              storeName,
+            });
+            const isBusy = busyId === order.id;
 
             return (
               <div
@@ -229,6 +323,12 @@ export function OrdersView({
                       <span className="text-xs font-mono text-neutral-400">
                         {order.id}
                       </span>
+                      {order.status === 'completed' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" />
+                          مُرحّل للمبيعات
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-neutral-500 mt-0.5">
                       {formatDateTime(order.createdAt)} · {order.paymentMethod}
@@ -236,12 +336,43 @@ export function OrdersView({
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    {/* Quick Action: Delivered + WhatsApp */}
+                    {order.status !== 'completed' && order.status !== 'cancelled' && (
+                      <a
+                        href={deliveredWaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          if (order.status !== 'delivered') {
+                            void handleStatusChange(order, 'delivered');
+                          }
+                        }}
+                        className="h-9 px-3 rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>تم التوصيل (واتساب للزبون)</span>
+                      </a>
+                    )}
+
+                    {/* Quick Action: Complete & Add to Sales */}
+                    {order.status !== 'completed' && order.status !== 'cancelled' && (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => void handleStatusChange(order, 'completed')}
+                        className="h-9 px-3 rounded-lg bg-[#11141A] hover:bg-black disabled:opacity-60 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>{isBusy ? 'جاري الحفظ...' : 'مكتمل + إضافة للمبيعات'}</span>
+                      </button>
+                    )}
+
                     <select
                       aria-label="تغيير حالة الطلب"
-                      disabled={busyId === order.id || isTerminal}
+                      disabled={isBusy || isTerminal}
                       value={order.status}
                       onChange={(e) =>
-                        handleStatusChange(order, e.target.value as OrderStatus)
+                        void handleStatusChange(order, e.target.value as OrderStatus)
                       }
                       className={`h-9 px-3 rounded-lg border text-xs font-bold focus:outline-none cursor-pointer ${getStatusClass(
                         order.status
@@ -257,8 +388,8 @@ export function OrdersView({
                     {isAdmin && (
                       <button
                         type="button"
-                        disabled={busyId === order.id}
-                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={isBusy}
+                        onClick={() => void handleDeleteOrder(order.id)}
                         title="حذف الطلب"
                         className="w-9 h-9 rounded-lg bg-red-50 hover:bg-red-100 text-[#C8102E] flex items-center justify-center cursor-pointer"
                       >
@@ -267,6 +398,25 @@ export function OrdersView({
                     )}
                   </div>
                 </div>
+
+                {/* Delivered reminder banner with instant WhatsApp link */}
+                {order.status === 'delivered' && (
+                  <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-indigo-900">
+                    <span>
+                      حالة الطلب: <strong>تم التوصيل</strong>. يمكنك إرسال رسالة تأكيد التوصيل للزبون على واتساب، ثم الضغط على{' '}
+                      <strong>مكتمل + إضافة للمبيعات</strong> لتسجيله في حساب المبيعات.
+                    </span>
+                    <a
+                      href={deliveredWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-8 px-3 rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white font-bold inline-flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>إرسال رسالة تم التوصيل</span>
+                    </a>
+                  </div>
+                )}
 
                 {/* Items */}
                 <div className="space-y-2">

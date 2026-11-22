@@ -7,9 +7,21 @@
     --font-mono: 'IBM Plex Mono', monospace;
   }
 
-  html {
+  html,
+  body {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    overflow-x: clip;
+    width: 100%;
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -24,6 +36,15 @@
 .font-num {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom sleek scrollbar */

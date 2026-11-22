@@ -133,7 +133,7 @@
         },
         "status": {
           "type": "string",
-          "enum": ["new", "contacted", "preparing", "completed", "cancelled"]
+          "enum": ["new", "contacted", "preparing", "delivered", "completed", "cancelled"]
         },
         "createdAt": {
           "type": "string",
@@ -162,6 +162,11 @@
       "type": "object",
       "properties": {
         "productId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "orderId": {
           "type": "string",
           "pattern": "^[a-zA-Z0-9_\\-]+$",
           "maxLength": 128

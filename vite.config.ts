@@ -13,6 +13,7 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: [
+          'favicon.ico',
           'icon.svg',
           'apple-touch-icon.png',
           'pwa-192x192.png',
@@ -24,7 +25,7 @@ export default defineConfig(() => {
           name: 'قطع غيار السيارات',
           short_name: 'قطع الغيار',
           description:
-            'متجر قطع غيار السيارات المستعملة والفرط وإدارة المخزون والمبيعات.',
+            'متجر الكتروني لبيع قطع غيار السيارات الناصرية - سوق الشيوخ',
           dir: 'rtl',
           lang: 'ar',
           theme_color: '#0F1115',

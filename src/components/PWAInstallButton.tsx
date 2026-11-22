@@ -20,6 +20,7 @@ export function PWAInstallButton({ variant = 'header' }: PWAInstallButtonProps) 
     isInstalled,
     isIOS,
     isInAppBrowser,
+    isInIframe,
     install,
   } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
@@ -32,11 +33,13 @@ export function PWAInstallButton({ variant = 'header' }: PWAInstallButtonProps) 
 
   const handleClick = async () => {
     if (isInstallable) {
-      const ok = await install();
-      if (!ok) {
+      try {
+        await install();
+        return;
+      } catch {
         setShowGuide(true);
+        return;
       }
-      return;
     }
     setShowGuide(true);
   };
@@ -54,13 +57,20 @@ export function PWAInstallButton({ variant = 'header' }: PWAInstallButtonProps) 
   const buttonClass =
     variant === 'sidebar'
       ? 'w-full h-10 px-4 rounded-xl bg-[#C8102E] hover:bg-[#A60D26] text-white text-xs sm:text-sm font-display font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer'
-      : 'h-10 px-3 rounded-lg bg-[#C8102E] hover:bg-[#A60D26] text-white text-xs sm:text-sm font-display font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0';
+      : 'h-9 sm:h-10 px-2.5 sm:px-3 rounded-lg bg-[#C8102E] hover:bg-[#A60D26] text-white text-xs sm:text-sm font-display font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0';
 
   return (
     <>
       <button type="button" onClick={handleClick} className={buttonClass}>
         <Download className="w-4 h-4 shrink-0" />
-        <span>تثبيت التطبيق</span>
+        {variant === 'sidebar' ? (
+          <span>تثبيت التطبيق</span>
+        ) : (
+          <>
+            <span className="sm:hidden">تثبيت</span>
+            <span className="hidden sm:inline">تثبيت التطبيق</span>
+          </>
+        )}
       </button>
 
       {showGuide && (
@@ -84,7 +94,24 @@ export function PWAInstallButton({ variant = 'header' }: PWAInstallButtonProps) 
             </div>
 
             <div className="p-5 space-y-4 text-sm">
-              {isInAppBrowser && (
+              {isInIframe && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-2">
+                  <p>
+                    <strong>للتثبيت المباشر على شاشة الموبايل:</strong> المتصفح يمنع التثبيت التلقائي أثناء المعاينة داخل الإطار. افتح الرابط مباشرة في متصفح Chrome أو Safari ليظهر لك التثبيت بضغطة واحدة.
+                  </p>
+                  <a
+                    href={window.location.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-9 px-3 rounded-lg bg-[#C8102E] hover:bg-[#A60D26] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>فتح الرابط مباشرة في المتصفح</span>
+                  </a>
+                </div>
+              )}
+
+              {!isInIframe && isInAppBrowser && (
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
                   <strong>تنبيه مهم:</strong> يبدو أنك فتحت الرابط داخل تطبيق آخر (مثل واتساب أو فيسبوك أو تيليجرام). لتثبيت التطبيق وتجنب أي حظر عند تسجيل الدخول، اضغط على القائمة واختر{' '}
                   <strong>الفتح في المتصفح (Safari أو Chrome)</strong>.

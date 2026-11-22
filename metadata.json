@@ -1,6 +1,10 @@
 {
   "name": "قطع غيار السيارات",
-  "description": "متجر إلكتروني ولوحة تحكم متكاملة لبيع قطع غيار السيارات المستعملة والفرط وإدارة المخزون والمبيعات والطلبات.",
-  "requestFramePermissions": ["camera"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "متجر الكتروني لبيع قطع غيار السيارات  الناصرية - سوق الشيوخ",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

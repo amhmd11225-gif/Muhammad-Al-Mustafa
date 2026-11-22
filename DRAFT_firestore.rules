@@ -114,7 +114,7 @@ service cloud.firestore {
         && (data.items[0].subtotal is int || data.items[0].subtotal is float) && data.items[0].subtotal >= 0
         && (data.totalAmount is int || data.totalAmount is float) && data.totalAmount >= 0 && data.totalAmount <= 10000000000
         && data.paymentMethod == 'الدفع عند الاستلام'
-        && data.status in ['new', 'contacted', 'preparing', 'completed', 'cancelled']
+        && data.status in ['new', 'contacted', 'preparing', 'delivered', 'completed', 'cancelled']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -126,11 +126,12 @@ service cloud.firestore {
           'employeeUid', 'employeeName', 'createdAt'
         ])
         && data.keys().hasOnly([
-          'productId', 'productName', 'carMake', 'carModel',
+          'productId', 'orderId', 'productName', 'carMake', 'carModel',
           'quantity', 'unitPrice', 'totalAmount', 'source',
           'employeeUid', 'employeeName', 'notes', 'createdAt'
         ])
         && isValidId(data.productId)
+        && (!('orderId' in data) || isValidId(data.orderId))
         && data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 140
         && data.carMake is string && data.carMake.size() <= 60
         && data.carModel is string && data.carModel.size() <= 60
@@ -254,9 +255,14 @@ service cloud.firestore {
         && isStaffOrAdmin()
         && isValidSale(incoming())
         && incoming().createdAt == request.time
-        && exists(/databases/$(database)/documents/products/$(incoming().productId));
+        && (isAdmin() || exists(/databases/$(database)/documents/products/$(incoming().productId)));
 
-      allow update, delete: if isValidId(saleId) && isAdmin() && (request.method == 'delete' || isValidSale(incoming()));
+      allow update: if isValidId(saleId)
+        && isAdmin()
+        && isValidSale(incoming())
+        && incoming().createdAt == existing().createdAt;
+
+      allow delete: if isValidId(saleId) && isAdmin();
     }
 
     // 4. Staff Accounts (Admin manages; Staff can read own role doc)
